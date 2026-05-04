@@ -1,0 +1,209 @@
+/* ─── ALLEY RADIO — purple cyberpunk terminal ────────────────────────────── */
+
+/* Panel shell */
+.ar-panel {
+  position: relative;
+  width: 420px;
+  background: rgba(7, 3, 16, 0.97);
+  border: 1px solid rgba(182, 108, 255, 0.42);
+  box-shadow:
+    0 0 0 1px rgba(182, 108, 255, 0.08),
+    0 0 40px rgba(182, 108, 255, 0.13),
+    0 0 80px rgba(182, 108, 255, 0.06),
+    inset 0 0 100px rgba(0, 0, 0, 0.55);
+  font-family: 'Courier New', Courier, monospace;
+  color: rgba(220, 190, 255, 0.88);
+  overflow: hidden;
+  user-select: none;
+}
+
+/* Scanlines */
+.ar-scanlines {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.1) 2px,
+    rgba(0, 0, 0, 0.1) 3px
+  );
+}
+
+/* Corner decorations */
+.ar-panel::before,
+.ar-panel::after {
+  content: '';
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  z-index: 11;
+  pointer-events: none;
+}
+.ar-panel::before {
+  top: -1px;
+  right: -1px;
+  border-top: 2px solid rgba(182, 108, 255, 0.8);
+  border-right: 2px solid rgba(182, 108, 255, 0.8);
+}
+.ar-panel::after {
+  bottom: -1px;
+  left: -1px;
+  border-bottom: 2px solid rgba(182, 108, 255, 0.8);
+  border-left: 2px solid rgba(182, 108, 255, 0.8);
+}
+
+/* Glitch — applied to panel top section */
+@keyframes ar-glitch {
+  0%, 88%, 100% { transform: translateX(0); filter: none; }
+  89% {
+    transform: translateX(-2px);
+    filter: drop-shadow(2px 0 rgba(255, 50, 120, 0.8))
+            drop-shadow(-2px 0 rgba(182, 108, 255, 0.8));
+  }
+  91% { transform: translateX(2px); }
+  93% { transform: translateX(0); filter: none; }
+}
+.ar-glitch {
+  animation: ar-glitch 9s ease-in-out infinite;
+}
+
+/* LIVE pulse */
+@keyframes ar-live-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.2; }
+}
+.ar-live-dot {
+  animation: ar-live-pulse 1.1s ease-in-out infinite;
+}
+
+/* Divider */
+.ar-divider {
+  border: none;
+  height: 1px;
+  margin: 0;
+  background: linear-gradient(90deg, transparent, rgba(182, 108, 255, 0.38), transparent);
+}
+
+/* Artwork placeholder — square, centred, ~72% of panel width */
+.ar-artwork-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 0 0 20px;
+}
+.ar-artwork-placeholder {
+  width: 300px;
+  aspect-ratio: 1 / 1;
+  background:
+    linear-gradient(135deg,
+      rgba(80, 20, 140, 0.55),
+      rgba(160, 70, 220, 0.25),
+      rgba(50, 10, 90, 0.65)
+    );
+  border: 1px solid rgba(182, 108, 255, 0.18);
+  box-shadow: inset 0 0 50px rgba(182, 108, 255, 0.07);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 56px;
+  color: rgba(182, 108, 255, 0.2);
+}
+.ar-artwork-img {
+  width: 300px;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  display: block;
+  border: 1px solid rgba(182, 108, 255, 0.18);
+}
+
+/* ── Equalizer ──────────────────────────────────────────────────────────── */
+.ar-eq-container {
+  display: flex;
+  align-items: flex-end;
+  height: 64px;
+  gap: 2px;
+}
+.ar-eq-bar {
+  flex: 1;
+  max-width: 10px;
+  border-radius: 1px 1px 0 0;
+  animation-iteration-count: infinite;
+  animation-timing-function: ease-in-out;
+}
+
+@keyframes ar-eq-1 { 0%,100%{height:4px}  20%{height:36px} 40%{height:14px} 60%{height:44px} 80%{height:20px} }
+@keyframes ar-eq-2 { 0%,100%{height:20px} 25%{height:6px}  50%{height:42px} 75%{height:10px} }
+@keyframes ar-eq-3 { 0%,100%{height:10px} 30%{height:40px} 60%{height:6px}  90%{height:28px} }
+@keyframes ar-eq-4 { 0%,100%{height:38px} 35%{height:8px}  65%{height:48px} }
+@keyframes ar-eq-5 { 0%,100%{height:6px}  25%{height:44px} 55%{height:16px} 80%{height:32px} }
+@keyframes ar-eq-6 { 0%,100%{height:28px} 20%{height:48px} 50%{height:8px}  80%{height:22px} }
+@keyframes ar-eq-7 { 0%,100%{height:16px} 15%{height:38px} 45%{height:4px}  75%{height:34px} }
+
+/* ── Spotify CTA ─────────────────────────────────────────────────────────── */
+.ar-spotify-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  box-sizing: border-box;
+  height: 68px;
+  background: transparent;
+  border: 1.5px solid rgba(182, 108, 255, 0.5);
+  color: rgba(200, 160, 255, 0.85);
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 15px;
+  letter-spacing: 0.28em;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.18s, border-color 0.18s, color 0.18s, box-shadow 0.18s;
+}
+.ar-spotify-btn:hover {
+  background: rgba(182, 108, 255, 0.09);
+  border-color: rgba(182, 108, 255, 0.85);
+  color: rgba(225, 195, 255, 1);
+  box-shadow: 0 0 22px rgba(182, 108, 255, 0.22);
+}
+
+/* ── Artwork play/pause overlay ──────────────────────────────────────────── */
+.ar-play-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: rgba(7, 3, 16, 0.62);
+  border: 1.5px solid rgba(182, 108, 255, 0.55);
+  box-shadow:
+    0 0 14px rgba(182, 108, 255, 0.35),
+    inset 0 0 10px rgba(182, 108, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: box-shadow 0.18s, border-color 0.18s, background 0.18s;
+}
+.ar-play-overlay:hover {
+  background: rgba(7, 3, 16, 0.8);
+  border-color: rgba(182, 108, 255, 0.9);
+  box-shadow:
+    0 0 22px rgba(182, 108, 255, 0.55),
+    inset 0 0 14px rgba(182, 108, 255, 0.14);
+}
+.ar-play-overlay-play {
+  font-size: 20px;
+  color: rgba(210, 175, 255, 0.95);
+  margin-left: 3px; /* optical centering for triangle */
+  line-height: 1;
+}
+.ar-play-overlay-pause {
+  font-size: 14px;
+  letter-spacing: 2px;
+  color: rgba(210, 175, 255, 0.75);
+  line-height: 1;
+}
