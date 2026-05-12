@@ -1,7 +1,6 @@
-import { useState, Suspense, useRef } from 'react'
-import { Canvas, useFrame } from '@react-three/fiber'
+import { useState, Suspense, useRef, useEffect } from 'react'
+import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { useProgress } from '@react-three/drei'
-import { useEffect } from 'react'
 import { Leva } from 'leva'
 import Scene from './components/Scene'
 import DebugViewer from './components/DebugViewer'
@@ -62,6 +61,25 @@ function LoadingScreen() {
   )
 }
 
+/* ── FrameDriver (30fps demand render loop) ────────────────────────── */
+function FrameDriver({ fps = 30 }) {
+  const { invalidate } = useThree()
+  useEffect(() => {
+    let id
+    let last = 0
+    const interval = 1000 / fps
+    const tick = (now) => {
+      id = requestAnimationFrame(tick)
+      if (now - last < interval) return
+      last = now
+      invalidate()
+    }
+    id = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(id)
+  }, [fps, invalidate])
+  return null
+}
+
 /* ── App ─────────────────────────────────────────────────────────────── */
 export default function App() {
   if (IS_DEBUG)  return <DebugViewer />
@@ -70,10 +88,13 @@ export default function App() {
   return (
     <div style={{ width: '100vw', height: '100vh', background: '#050208' }}>
       <Canvas
+        dpr={[1, 1.5]}
+        frameloop="demand"
         camera={{ position: [5, 6, 19], fov: 55, near: 0.05, far: 200 }}
         gl={{ antialias: true, powerPreference: 'high-performance' }}
         style={{ position: 'absolute', inset: 0 }}
       >
+        <FrameDriver fps={30} />
         <color attach="background" args={['#050208']} />
         <Suspense fallback={null}>
           <Scene />
