@@ -1,4 +1,4 @@
-# Personal Website (WIP)
+# WIP
 
 ## Stack
 
