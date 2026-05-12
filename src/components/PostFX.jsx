@@ -11,7 +11,7 @@ export default function PostFX() {
   return (
     <PPBoundary>
       <EffectComposer multisampling={0}>
-        <Bloom luminanceThreshold={0.65} luminanceSmoothing={0.35} intensity={0.8} mipmapBlur />
+        <Bloom luminanceThreshold={0.65} luminanceSmoothing={0.35} intensity={0.8} />
         <Vignette offset={0.2} darkness={0.85} />
       </EffectComposer>
     </PPBoundary>
