@@ -74,9 +74,8 @@ export default function Scene() {
       {/* Cool moonlight from above */}
       <directionalLight position={[2, 20, 8]} intensity={0.8} color="#7799cc" />
 
-      {/* Neon point light accents — sign/window sources, kept away from car windshield */}
-      <pointLight position={[0, 3, 6]} color="#ff8800" intensity={4.5} distance={18} decay={2} />
-      <pointLight position={[ 0, 9, 6]} color="#ffcc66" intensity={2.5} distance={22} decay={2} />
+      {/* Warm ceiling glow */}
+      <pointLight position={[0, 9, 6]} color="#ffcc66" intensity={2.5} distance={22} decay={2} />
 
       {/* Cyan fill — high on left wall/storefront, cannot reach road */}
       <pointLight position={[-5, 8, 4]} color="#00ccff" intensity={cyanIntensity} distance={12} decay={2.5} />
