@@ -3,26 +3,15 @@ import { useThree } from '@react-three/fiber'
 import { Environment, OrbitControls } from '@react-three/drei'
 import { useControls, folder } from 'leva'
 import * as THREE from 'three'
-import { RectAreaLightUniformsLib } from 'three/examples/jsm/lights/RectAreaLightUniformsLib.js'
 import Alley          from './Alley'
 import Car            from './Car'
 import AlleyRadioSign from './AlleyRadioSign'
 import SceneDressing  from './SceneDressing'
 import PostFX         from './PostFX'
-import Rain           from './Rain'
 import ManholeSteam   from './ManholeSteam'
 
-RectAreaLightUniformsLib.init()
-
 function EnvMap() {
-  return (
-    <>
-      {/* City preset gives usable reflections even if HDR fails */}
-      <Environment preset="city" background={false} />
-      {/* Street lamp HDR overrides city preset — richer warm/neon tones */}
-      <Environment files="/assets/street_lamp.hdr" background={false} />
-    </>
-  )
+  return <Environment files="/assets/street_lamp.hdr" background={false} />
 }
 
 /*
@@ -44,12 +33,11 @@ export default function Scene() {
     'Camera': folder({ freeCamera: { value: false, label: 'free camera (full rotate)' } }, { collapsed: true }),
   })
 
-  const { showReflectionCards, cyanIntensity, magentaIntensity, warmWindowIntensity } = useControls({
+  const { showReflectionCards, cyanIntensity, magentaIntensity } = useControls({
     'Lighting': folder({
       showReflectionCards: { value: false,  label: 'show reflection cards' },
       cyanIntensity:       { value: 2.5, min: 0, max: 12, step: 0.1, label: 'cyan intensity' },
       magentaIntensity:    { value: 0.7, min: 0, max: 12, step: 0.1, label: 'magenta intensity' },
-      warmWindowIntensity: { value: 4.0, min: 0, max: 12, step: 0.1, label: 'warm window intensity' },
     }, { collapsed: true }),
   })
 
@@ -87,8 +75,7 @@ export default function Scene() {
       <directionalLight position={[2, 20, 8]} intensity={0.8} color="#7799cc" />
 
       {/* Neon point light accents — sign/window sources, kept away from car windshield */}
-      <pointLight position={[-4, 3, 6]} color="#ff6600" intensity={3.0} distance={16} decay={2} />
-      <pointLight position={[ 4, 3, 6]} color="#ffaa00" intensity={3.0} distance={16} decay={2} />
+      <pointLight position={[0, 3, 6]} color="#ff8800" intensity={4.5} distance={18} decay={2} />
       <pointLight position={[ 0, 9, 6]} color="#ffcc66" intensity={2.5} distance={22} decay={2} />
 
       {/* Cyan fill — high on left wall/storefront, cannot reach road */}
@@ -96,20 +83,6 @@ export default function Scene() {
 
       {/* Magenta rim — high right wall, cannot reach road */}
       <pointLight position={[8, 8, 3]} color="#cc44ff" intensity={magentaIntensity} distance={14} decay={2.5} />
-
-      {/* RectAreaLight — warm amber from storefront windows */}
-      <rectAreaLight
-        position={[-2, 3.5, 7.5]}
-        width={4} height={3}
-        color="#ffaa44"
-        intensity={warmWindowIntensity}
-      />
-      <rectAreaLight
-        position={[ 2, 3.5, 7.5]}
-        width={4} height={3}
-        color="#ffaa44"
-        intensity={warmWindowIntensity}
-      />
 
       {/* Reflection cards — hidden by default; toggle via Leva → Lighting → show reflection cards */}
       <mesh position={[-14, 5, 2]} rotation-y={Math.PI / 2} visible={showReflectionCards}>
@@ -130,8 +103,6 @@ export default function Scene() {
       <AlleyRadioSign />
       <Suspense fallback={null}><SceneDressing /></Suspense>
       <ManholeSteam showSteam={false} />
-
-      <Rain />
 
       <PostFX />
     </>
