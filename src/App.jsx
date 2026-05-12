@@ -1,5 +1,5 @@
 import { useState, Suspense, useRef, useEffect } from 'react'
-import { Canvas, useFrame, useThree } from '@react-three/fiber'
+import { Canvas, useThree } from '@react-three/fiber'
 import { useProgress } from '@react-three/drei'
 import { Leva } from 'leva'
 import Scene from './components/Scene'
