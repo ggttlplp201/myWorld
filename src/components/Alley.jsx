@@ -83,7 +83,7 @@ export default function Alley() {
       <Suspense fallback={null}>
         <AlleyTextures scene={scene} meshOverrides={meshOverrides} />
         {import.meta.env.DEV && (
-          <TexturePicker scene={scene} meshOverrides={meshOverrides} onOverride={setPickerOverrides} />
+          <TexturePicker meshOverrides={meshOverrides} onOverride={setPickerOverrides} />
         )}
       </Suspense>
     </group>

@@ -20,11 +20,8 @@ const PREVIEW_MAT = {
   woodPole:        new THREE.MeshBasicMaterial({ color: '#5c3d28' }),
 }
 
-const ROAD = new Set(['Asphalt', 'Road'])
-const isRoad = n => (n.userData.originalMaterialNames ?? []).some(m => ROAD.has(m))
-
-export default function TexturePicker({ scene, meshOverrides = {}, onOverride }) {
-  const { camera, gl } = useThree()
+export default function TexturePicker({ meshOverrides = {}, onOverride }) {
+  const { camera, gl, scene } = useThree()
 
   const selectedRef       = useRef(null)  // currently highlighted mesh
   const savedMatRef       = useRef(null)  // material before SEL_MAT — null after assignment
@@ -36,7 +33,7 @@ export default function TexturePicker({ scene, meshOverrides = {}, onOverride })
   // Keep fresh ref so button closures never go stale
   useEffect(() => { meshOverridesRef.current = meshOverrides }, [meshOverrides])
 
-  const [{ enabled, category }, set] = useControls('TexturePicker (Alley GLB only)', () => ({
+  const [{ enabled, category }, set] = useControls('TexturePicker', () => ({
     enabled:  { value: false, label: '▶ Enable (click mesh)' },
     mesh:     { value: '—',   label: 'Mesh name' },
     mat:      { value: '—',   label: 'Materials' },
@@ -121,7 +118,7 @@ export default function TexturePicker({ scene, meshOverrides = {}, onOverride })
         ((e.clientY - rect.top)  / rect.height) * -2 + 1,
       )
       rc.setFromCamera(mouse, camera)
-      const hits = rc.intersectObject(scene, true).filter(h => h.object.isMesh && !isRoad(h.object))
+      const hits = rc.intersectObject(scene, true).filter(h => h.object.isMesh)
       if (!hits.length) return
 
       const mesh = hits[0].object

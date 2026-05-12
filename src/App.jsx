@@ -64,9 +64,6 @@ function LoadingScreen() {
 
 /* ── App ─────────────────────────────────────────────────────────────── */
 export default function App() {
-  const [carActive, setCarActive]       = useState(false)
-  const [activeWindow, setActiveWindow] = useState(null)
-
   if (IS_DEBUG)  return <DebugViewer />
   if (IS_PLACER) return <CarPlacer />
 
@@ -79,10 +76,7 @@ export default function App() {
       >
         <color attach="background" args={['#050208']} />
         <Suspense fallback={null}>
-          <Scene
-            carActive={carActive}        setCarActive={setCarActive}
-            activeWindow={activeWindow}  setActiveWindow={setActiveWindow}
-          />
+          <Scene />
         </Suspense>
       </Canvas>
       <LoadingScreen />

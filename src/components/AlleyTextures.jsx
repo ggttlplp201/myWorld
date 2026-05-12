@@ -79,7 +79,7 @@ function buildMaterial(texKey, texSets) {
     envMapIntensity: def.envMap ?? 1.0,
   }
 
-  const raw = def.texSet ? texSets[def.texSet] : null
+  const raw = (def.textureMode !== 'solid' && def.texSet) ? texSets[def.texSet] : null
   if (raw) {
     const [ru, rv] = def.repeat
     for (const [k, v] of Object.entries(raw)) {
@@ -125,7 +125,10 @@ export default function AlleyTextures({ scene, meshOverrides = {} }) {
   const texMetal025   = usePBRTextureSet(`${T}/metal025`,          { color: 'color.jpg', normal: 'normal.jpg', roughness: 'rough.jpg', metalness: 'metalness.jpg' })
   const texRust       = usePBRTextureSet(`${T}/rust`,              { color: 'color.jpg', normal: 'normal.jpg', roughness: 'rough.jpg', metalness: 'metalness.jpg' })
   const texPMetal014  = usePBRTextureSet(`${T}/painted-metal014`,  { color: 'color.jpg', normal: 'normal.jpg', roughness: 'rough.jpg', metalness: 'metalness.jpg', ao: 'ao.jpg' })
-  const texSmear      = usePBRTextureSet(`${T}/smear`,             { color: 'color.jpg', normal: 'normal.jpg', roughness: 'rough.jpg' })
+  const texSmear       = usePBRTextureSet(`${T}/smear`,             { color: 'color.jpg', normal: 'normal.jpg', roughness: 'rough.jpg' })
+  const texConcrete019  = usePBRTextureSet(`${T}/concrete019`,       { color: 'color.jpg', normal: 'normal.jpg', roughness: 'rough.jpg' })
+  const texAsphalt025c  = usePBRTextureSet(`${T}/asphalt025c`,       { color: 'color.jpg', normal: 'normal.jpg', roughness: 'rough.jpg', ao: 'ao.jpg' })
+  const texImperfections = usePBRTextureSet(`${T}/imperfections`,   { color: 'color.jpg', normal: 'normal.jpg' })
 
   const texSets = {
     'plaster':          texPlaster,
@@ -142,6 +145,9 @@ export default function AlleyTextures({ scene, meshOverrides = {} }) {
     'rust':             texRust,
     'painted-metal014': texPMetal014,
     'smear':            texSmear,
+    'concrete019':      texConcrete019,
+    'asphalt025c':      texAsphalt025c,
+    'imperfections':    texImperfections,
   }
 
   const registry       = useRef(null)
@@ -178,7 +184,7 @@ export default function AlleyTextures({ scene, meshOverrides = {} }) {
       cache[key] = buildMaterial(key, texSets)
     })
     matCacheRef.current = cache
-  }, [texPlaster, texBricks, texConcrete, texCurb, texRubber, texPainted, texMetalTrim, texCorrugated, texWood, texMetal006, texMetal025, texRust, texPMetal014, texSmear]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [texPlaster, texBricks, texConcrete, texCurb, texRubber, texPainted, texMetalTrim, texCorrugated, texWood, texMetal006, texMetal025, texRust, texPMetal014, texSmear, texConcrete019, texAsphalt025c, texImperfections]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // colorAll debug
   useEffect(() => {
@@ -236,10 +242,10 @@ export default function AlleyTextures({ scene, meshOverrides = {} }) {
     const cache = matCacheRef.current
 
     scene.traverse(n => {
-      if (!n.isMesh || isEmissive(n) || isRoad(n)) return
+      if (!n.isMesh || isEmissive(n)) return
       const meshName = n.userData.originalMeshName ?? n.name
 
-      // 1. Exact mesh override
+      // 1. Exact mesh override — applies to any mesh including road and car
       const overrideKey = meshOverrides[meshName]
       if (overrideKey && overrideKey !== 'original') {
         n.material = meshDebug
@@ -248,7 +254,8 @@ export default function AlleyTextures({ scene, meshOverrides = {} }) {
         return
       }
 
-      // 2. Category fallback
+      // 2. Category fallback — skip road (no category assigned)
+      if (isRoad(n)) return
       const catId = registry.current.get(n)
       if (catId) {
         n.material = meshDebug

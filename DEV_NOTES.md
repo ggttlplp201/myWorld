@@ -1,20 +1,19 @@
 # Portfolio V2 — Dev Notes
 
 **Project**: Cyberpunk alley scene — personal portfolio  
-**Stack**: React 19 + Vite + @react-three/fiber v9 + @react-three/drei v10 + THREE.js r165+  
-**Dev server**: `npm run dev` → `localhost:5175`  
-**Working directory**: `/Users/leon/Library/Mobile Documents/com~apple~CloudDocs/Development/portfolio-v2/`
+**Stack**: React 19 + Vite + @react-three/fiber v9 + @react-three/drei v10 + THREE.js r184 + @react-three/postprocessing v3.0.4 + Leva  
+**Dev server**: `npm run dev` → `localhost:5175`
 
 ---
 
-## Scene Overview
+## Project Goal
 
-A first-person cyberpunk alley viewed from outside (camera at Z=19 looking in). A DeLorean sits on the road. Clicking it opens a hologram UI with portfolio content.
+First-person cyberpunk alley viewed from outside (camera at Z=19 looking in). A DeLorean sits on the road. Clicking it opens a hologram UI with portfolio content (about, projects, resume, contact).
 
-Key world coordinates (after `alley.glb` scale=0.01 + position.y=+1.1):
-- World bounds: X/Z ±8m, Y 0–10.7m
-- Camera start: `[5, 6, 19]` → active: `[2, 3, 11]`
-- Orbit target: `[0, 1.5, 2]`
+**World coordinates** (after `alley.glb` scale=0.01 + position.y=+1.1):
+- Alley bounds: X/Z ±8m, Y 0–10.7m
+- Camera start: `[5, 6, 19]` → orbit target `[0, 1.5, 2]`
+- Car world center: `[0.3, 0.6, 5.7]` — front Z≈3.97, rear Z≈7.41, road Y≈0, car roof Y≈3.6
 
 ---
 
@@ -22,240 +21,207 @@ Key world coordinates (after `alley.glb` scale=0.01 + position.y=+1.1):
 
 | File | Purpose |
 |------|---------|
-| `Scene.jsx` | Root 3D scene, camera animation, lights |
+| `Scene.jsx` | Root 3D scene, lights, OrbitControls, camera init, EnvMap |
 | `Alley.jsx` | Loads `alley.glb`, merges overrides, renders `AlleyTextures` + `TexturePicker` |
-| `AlleyTextures.jsx` | PBR texture pass on alley GLB meshes — receives `scene` + `meshOverrides` prop |
-| `TexturePicker.jsx` | **DEV only** — click-to-assign texture workflow, Leva panel, Copy all output |
+| `AlleyTextures.jsx` | PBR texture pass on alley GLB meshes — receives `scene` + `meshOverrides` as props |
+| `TexturePicker.jsx` | **DEV only** — click-to-assign texture workflow; "Copy all" → paste into `MESH_TEXTURE_OVERRIDES` |
 | `utils/alleyMaterials.js` | Single source of truth: `MESH_TEXTURE_OVERRIDES`, `TEXTURE_DEFS`, `PICKER_KEYS` |
-| `Car.jsx` | DeLorean, clickable, activates hologram |
+| `Car.jsx` | DeLorean GLB — `classifyCarPart()` maps GLB material names to named material slots |
 | `SceneDressing.jsx` | Props: neon sign, AC unit, cables, electrical boxes, graffiti, trash bags, Japanese sign, traffic cones, vending machine |
-| `HologramUI.jsx` | Holographic portfolio windows, shown when car is active |
-| `AlleyRadioSign.jsx` | Animated radio/music sign on the alley wall |
-| `Rain.jsx` | LineSegments rain system with Leva controls |
-| `PostFX.jsx` | Post-processing (bloom, etc.) |
-| `TextureProof.jsx` | **DEBUG** — brick-textured plane at Z=15. Remove when done. |
-| `AlleyColorTest.jsx` | **DEBUG** — orange paint test. Remove when done. |
-| `RoadOverlay.jsx` | Unused (kept on disk, not imported) |
-| `LaneMarkings.jsx` | Unused (kept on disk, not imported) |
-| `Puddles.jsx` | Unused (kept on disk, not imported) |
+| `HologramUI.jsx` | Html overlay at `[0,3.5,9]` — portfolio sections |
+| `PortfolioWindow.jsx` | Four sections: about, projects, resume, contact (**contact/resume are placeholders**) |
+| `AlleyRadioSign.jsx` | Music panel on alley wall; debug via `?signplace` |
+| `Rain.jsx` | LineSegments rain with Leva controls |
+| `ManholeSteam.jsx` | Steam effect — currently `showSteam={false}` in Scene.jsx |
+| `PostFX.jsx` | Bloom (luminanceThreshold 0.65, intensity 0.8, mipmapBlur) + Vignette |
+| `Puddles.jsx` | Unused — re-add after road texture work |
+
+**URL debug modes**: `?debug` → DebugViewer, `?place` → CarPlacer, `?signplace` → AlleyRadioSignHUD
 
 ---
 
-## Architecture: Single Source of Truth for Mesh Textures
+## Car Material System (`Car.jsx`)
 
-All per-mesh texture assignments live in `src/utils/alleyMaterials.js`:
+The car uses a **classification-by-material-name** approach — no heuristics, no color thresholds.
 
-```js
-// Paste TexturePicker "Copy all" output here to persist assignments
-export const MESH_TEXTURE_OVERRIDES = {
-  "Building_Top_Building_Texture_2_0": "metal025",
-  "Shop_Top_Building_Texture_2_0":     "metal025",
-  "Storeftront_Roof001_Railing_0":     "metal027",
-  "Cube026_Railing_0":                 "metal027",
-  "Placeholder_Lamppost_Metal_0":      "woodPole",
-  "Cube014_Material004_0":             "rust",
-  "Cube014_Metal_0":                   "paintedMetal014",
-  "Cube040_Concrete_0":                "smear",
-}
+### `classifyCarPart(materialName)` — confirmed GLB material name mapping
+
+| GLB material name | Part slot | Material type |
+|---|---|---|
+| `delorean` | `body` | MeshPhysical — warm silver stainless |
+| `sides` | `darkBody` | MeshPhysical — dark lower panels |
+| `window`, `windshield` | `glass` | MeshPhysical — smoked glass |
+| `wheels` | `tire` | MeshStandard — black rubber |
+| `wheels_2` | `wheelMetal` | MeshStandard — wheel metal |
+| `cooler`, `metal_parts`, `back_part`, `mr_fusion`, `mr_fusion_2` | `darkMetal` | MeshPhysical — dark machinery |
+| `front_part` | `frontFascia` | MeshPhysical — dark front bumper |
+| `time_circuits` | `purpleAccent` | **EMISSIVE** — purple neon strip, emissiveIntensity 4.0 |
+| `buttons` | `redIndicator` | **EMISSIVE** — red cylinders, emissiveIntensity 3.4 |
+| `buttons_2`, `circuits_2` | `orangeIndicator` | **EMISSIVE** — orange indicators |
+| `front_part_2` | `warmLights` | **EMISSIVE** — headlights/taillights, emissiveIntensity 10.0 |
+| `mr_fusion_3` | `whiteDeckLight` | **EMISSIVE** — rear deck white light |
+| `board`, `circuits` | `board` | MeshStandard — dark circuit board |
+| `cables` | `cable` | MeshStandard — near-black cables |
+
+Unrecognized names log `[CarMaterial:unclassified]` in DEV console.
+
+### Car body material values (current)
+- `body`: color `#aaa59b`, metalness 1.0, roughness 0.24, envMapIntensity 3.2, clearcoat 0.2
+- All materials are module-level singletons via `useMemo(() => makeCarMaterials(), [])`
+
+### Car PointLights (tight lamp spill — not road blobs)
 ```
-
-`Alley.jsx` merges static overrides with live picker state at render time:
-```js
-const meshOverrides = { ...MESH_TEXTURE_OVERRIDES, ...pickerOverrides }
-```
-This means HMR changes to `MESH_TEXTURE_OVERRIDES` are always reflected without a full reload.
-
-`AlleyTextures` receives `meshOverrides` as a prop and applies: **exact mesh override first**, category fallback second, original material if no match.
-
-### TexturePicker workflow (DEV only)
-1. Enable "▶ Enable (click mesh)" in Leva panel
-2. Click a mesh → see its name, material, world bounds
-3. Select texture key from dropdown → preview applied immediately
-4. "Copy all" → paste JSON into `MESH_TEXTURE_OVERRIDES` in `alleyMaterials.js`
-
----
-
-## Bug Fixed: HMR State Initialization
-
-**The bug**: `useState(MESH_TEXTURE_OVERRIDES)` in Alley.jsx captured the initial empty `{}` when the app first loaded via HMR. Even after adding overrides to the const, React preserved the stale empty state — meshes fell back to category materials instead of showing overrides.
-
-**The fix**: Split state so the static const is spread inline on every render, never captured in state:
-```js
-const [pickerOverrides, setPickerOverrides] = useState({})
-const meshOverrides = { ...MESH_TEXTURE_OVERRIDES, ...pickerOverrides }
+FRONT_LEFT_LIGHT_POS  [4.05, 1.78, 4.55]  #ffe9a8  intensity=0.22  distance=1.6
+FRONT_RIGHT_LIGHT_POS [4.05, 1.78, 6.85]  #ffe9a8  intensity=0.22  distance=1.6
+REAR_LIGHT_POS        [-3.35, 1.35, 5.7]  #ffd0a0  intensity=0.75  distance=2.4
 ```
 
 ---
 
-## Bug Fixed: isEmissive() False Positive
-
-**The bug**: `isEmissive()` checked `m.emissiveIntensity > 0.5`. In Three.js, `MeshStandardMaterial.emissiveIntensity` defaults to `1` even when emissive color is black — so almost every mesh was treated as emissive and skipped.
-
-**The fix**: `materialIsActuallyEmissive()` checks material name (window/lamp/neon/sign/etc.) OR actual non-black emissive color (`e.r/g/b > 0.01`). Same fix applied in `SceneDressing.jsx`.
-
-Also fixed: `<Leva />` was never rendered in `App.jsx` — added `<Leva hidden={!import.meta.env.DEV} />`.
-
----
-
-## Bug Fixed: useGLTF Cloning (Critical)
-
-**The bug**: `AlleyTextures` called `useGLTF('/assets/alley.glb')` independently. In drei v10, this returns a **cloned scene per call** — material mutations had zero effect on what `Alley.jsx` rendered.
-
-**The fix**: `AlleyTextures` no longer calls `useGLTF`. It receives `scene` as a prop from `Alley.jsx` which owns the single cloned instance.
-
----
-
-## Bug Fixed: Global Texture Repeat Mutation
-
-**The bug**: Setting `.repeat` directly on textures from `useTexture` mutated shared cached objects — all materials using the same texture folder got identical repeat values.
-
-**The fix**: `buildMaterial()` in `AlleyTextures.jsx` clones every texture before setting repeat and colorSpace. Each material has fully independent texture instances.
-
----
-
-## Texture Pass — Current State
-
-### Texture folders in `public/assets/textures/`
-
-```
-plaster/           color, normal, rough
-bricks/            color, normal, rough, ao
-concrete020/       color, normal, rough
-concrete-walk/     color, normal, rough
-rubber/            color, normal, rough
-painted-metal006/  color, normal, rough, metalness, ao
-metal-trim/        color, normal, rough, metalness
-corrugated-steel/  color, normal, rough, metalness, ao
-wood015/           color, normal, rough
-metal006/          color, normal, rough, metalness
-metal025/          color, normal, rough, metalness
-rust/              color, normal, rough, metalness
-painted-metal014/  color, normal, rough, metalness, ao
-smear/             color, normal, rough
-asphalt/           color, normal, rough, ao         ← road, do not touch yet
-imperfections/     color, normal, rough
-metal-ac/          color, normal, rough, metalness  ← SceneDressing AcUnit
-painted-metal-box/ color, normal, rough, metalness, ao ← SceneDressing ElectricalBoxes
-concrete-right/    color, normal, rough             ← legacy, may be unused
-
-public/assets/metal012/  color, normal, roughness, metalness  ← Car body ("roughness.jpg" not "rough.jpg")
-```
-
-### Category fallback mapping (AlleyTextures CATS array)
-
-These apply by GLB material name when no exact mesh override exists:
-
-| Category | GLB Material Name(s) | Texture Key | Debug Color |
-|----------|---------------------|-------------|-------------|
-| `walls` | `Building_Walls` | `plaster` | Purple `#aa00ff` |
-| `roofCap` | `Building_Texture_2`, mesh `Plane__0` | `bricks` | Pink `#ff00cc` |
-| `concrete` | `Concrete` | `concrete020` | Cyan `#00ffff` |
-| `curb` | `Curb` | `concrete-walk` | Light blue `#00ccff` |
-| `wires` | `Wires`, `Wires_2` | `rubber` | Green `#00ff44` |
-| `railing` | `Railing`, `Metal027_2K-JPG` | `painted-metal006` | Yellow `#ffff00` |
-| `metal` | `Metal`, `Door_Frame`, `wINDOW_bLINDS` | `metal-trim` | Grey `#cccccc` |
-| `door` | `Metal_Door*` | `corrugated-steel` | Orange `#ff8800` |
-| `pipes` | `Material002` | `metal006` | Blue `#aaaaff` |
-| `lamppost` | mesh `Placeholder_Lamppost_Metal_0` | `wood015` | Brown `#cc8844` |
-| `floorStrip` | `Material.001`–`.003` | `metal-trim` | Amber `#ffaa00` |
-| `darkTrim` | `Material.004`–`.006` | `metal-trim` | Pink `#ff66cc` |
-
-### Exact mesh overrides (MESH_TEXTURE_OVERRIDES — current)
-
-| Mesh | Texture Key | Notes |
-|------|-------------|-------|
-| `Building_Top_Building_Texture_2_0` | `metal025` | Roof panel, Metal025 |
-| `Shop_Top_Building_Texture_2_0` | `metal025` | Roof panel, Metal025 |
-| `Storeftront_Roof001_Railing_0` | `metal027` | Roof railing — Metal027 (NOT PaintedMetal006) |
-| `Cube026_Railing_0` | `metal027` | Roof railing — Metal027 |
-| `Placeholder_Lamppost_Metal_0` | `woodPole` | Wood015 pole |
-| `Cube014_Material004_0` | `rust` | Rust005 |
-| `Cube014_Metal_0` | `paintedMetal014` | PaintedMetal014 |
-| `Cube040_Concrete_0` | `smear` | Smear002 concrete wall |
-
-### Emissive materials (protected, never overwritten)
-- `Window_1` — intensity 2.5
-- `Lamppost_Light` — intensity 4
-- `Noen_Sign` — intensity 6
-
-### Road meshes (protected by `isRoad` guard)
-- `Floor_Asphalt_0` / mat `Asphalt`
-- `Cube031_Road_0` / mat `Road`
-
----
-
-## TEXTURE_DEFS keys
-
-Picker-selectable keys (shown in TexturePicker dropdown via `PICKER_KEYS`):
-`original`, `plaster`, `concrete`, `brick`, `darkMetal`, `metalTrim`, `rubber`, `corrugatedMetal`, `woodPole`
-
-Named override keys (used in `MESH_TEXTURE_OVERRIDES`):
-`metal025`, `metal027`, `woodPole`, `rust`, `paintedMetal014`, `smear`
-
-Internal category keys (fallback only, not in picker):
-`walls`, `roofCap`, `curb`, `wires`, `railing`, `metal`, `door`, `pipes`, `lamppost`, `floorStrip`, `darkTrim`
-
----
-
-## Scene Lighting (Scene.jsx — current values)
+## Scene Lighting (`Scene.jsx` — current)
 
 ```jsx
 <ambientLight color="#3a2a50" intensity={4.0} />
-<directionalLight position={[2, 20, 8]} intensity={0.8} color="#7799cc" />
-<pointLight position={[-4, 3, 6]} color="#ff6600" intensity={3.0} distance={16} decay={2} />
-<pointLight position={[ 4, 3, 6]} color="#ffaa00" intensity={3.0} distance={16} decay={2} />
-<pointLight position={[ 0, 5, 5]} color="#00eeff" intensity={2.5} distance={18} decay={2} />
-<pointLight position={[ 0, 8, 2]} color="#aa44ff" intensity={2.0} distance={14} decay={2} />
-<pointLight position={[0, 9, 6]}  color="#ffcc66" intensity={2.5} distance={22} decay={2} />
+<directionalLight position={[2, 20, 8]} intensity={0.8} color="#7799cc" />           // moonlight
+<pointLight position={[-4, 3, 6]} color="#ff6600" intensity={3.0} distance={16} />   // orange sign spill
+<pointLight position={[ 4, 3, 6]} color="#ffaa00" intensity={3.0} distance={16} />   // orange sign spill
+<pointLight position={[ 0, 9, 6]} color="#ffcc66" intensity={2.5} distance={22} />   // warm ceiling
+<pointLight position={[-5, 8, 4]} color="#00ccff" intensity={cyanIntensity}  distance={12} decay={2.5} />  // cyan (Leva)
+<pointLight position={[ 8, 8, 3]} color="#cc44ff" intensity={magentaIntensity} distance={14} decay={2.5} /> // magenta (Leva)
+<rectAreaLight position={[-2, 3.5, 7.5]} color="#ffaa44" intensity={warmWindowIntensity} />
+<rectAreaLight position={[ 2, 3.5, 7.5]} color="#ffaa44" intensity={warmWindowIntensity} />
 ```
 
-Car active adds: two red rear lights + one blue flux light.
+Cyan and magenta are at **Y=8** intentionally — previously at Y=2–5 they created road blobs.  
+Environment: city preset (reflection fallback) + street_lamp.hdr (overrides when loaded).
 
 ---
 
-## What's Pending
+## Texture System
 
-1. **Road/asphalt** — `Floor_Asphalt_0` / `Cube031_Road_0`. Deferred — lane markings need preserving.
-2. **Puddles** — `Puddles.jsx` exists but not imported. Re-add after road work.
-3. **Uncategorized meshes** — Use `uncatDebug` toggle in AlleyTextures Leva panel (hot-pink = uncategorized). `floorStrip` / `darkTrim` material names `Material.001`–`.006` (with dot) are guesses — verify with uncatDebug.
-4. **Debug components** — `TextureProof.jsx` and `AlleyColorTest.jsx` are still imported/rendered. Remove before shipping.
-5. **More picker assignments** — Many meshes likely still on category fallback or original material.
-
----
-
-## SceneDressing Props — PBR Status
-
-| Prop | Texture | Notes |
-|------|---------|-------|
-| OpenSign | none | Emissive orange neon `#ff6633`, intensity 5 |
-| ElectricalBoxes | `painted-metal-box/` | Dark green `#3a4a3a`, metallic |
-| Cables | `rubber/` | Near-black `#1a1a1a` |
-| AcUnit | `metal-ac/` | Silver `#c0c0b8`, metallic |
-| Graffiti | none | Decal — keep original |
-| GarbageBags | none | Keep original |
-| JapaneseSign | none | Animated, keep original |
-| TrafficCone | none | Keep original |
-| VendingMachine | none | Keep original |
-
----
-
-## Rain
-
-`Rain.jsx` — `THREE.LineSegments` with `BufferGeometry`. Leva controls:
-- `rainEnabled`, `rainCount` (650), `rainOpacity` (0.16), `rainSpeed` (9.0), `rainSlant` (0.07)
-- Color: `#d9e6ff`, `depthWrite: false`
-
----
-
-## Ruflo MCP
-
-Ruflo was not connected. Fixed by running:
-```bash
-claude mcp add ruflo -- npx -y ruflo@latest mcp start
+### Architecture (single source of truth)
+```js
+// alleyMaterials.js
+export const MESH_TEXTURE_OVERRIDES = { "MeshName": "textureKey", ... }
 ```
-Registered in `/Users/leon/.claude.json` (project-local config). Restart Claude Code for MCP tools (`memory_store`, `memory_search`, `hooks_route`, etc.) to be available.
+`Alley.jsx` merges static overrides with live picker state each render:
+```js
+const meshOverrides = { ...MESH_TEXTURE_OVERRIDES, ...pickerOverrides }
+```
+`AlleyTextures` applies: **exact mesh override → category fallback → original GLB material**
 
-Daemon was already running (PID 30920). Memory DB at `.swarm/memory.db`.
+### Current `MESH_TEXTURE_OVERRIDES`
+```js
+"Storeftront_Roof001_Railing_0": "metal027"
+"Cube026_Railing_0":             "metal027"
+"Placeholder_Lamppost_Metal_0":  "woodPole"
+"Cube014_Material004_0":         "rust"
+"Cube014_Metal_0":               "paintedMetal014"
+"Object_4":                      "metal012"      // ⚠ may be a car mesh — verify
+"Floor_Asphalt_0":               "asphalt025c"
+"Cube040_Concrete_0":            "concrete019"
+"Cube020_wINDOW_bLINDS_0":       "imperfections"
+```
+
+> ⚠ `Object_4` is listed here but may belong to the DeLorean GLB. If car body material looks wrong, check if AlleyTextures is fighting Car.jsx on this mesh and remove the entry.
+
+### Category fallback (CATS in AlleyTextures.jsx)
+| Category | GLB material name(s) | Texture key |
+|---|---|---|
+| `walls` | `Building_Walls` | `plaster` |
+| `roofCap` | `Building_Texture_2`, mesh `Plane__0` | solid `#2b2b26` |
+| `concrete` | `Concrete` | `concrete020` |
+| `curb` | `Curb` | solid `#8a8377` |
+| `wires` | `Wires`, `Wires_2` | `rubber` |
+| `railing` | `Railing`, `Metal027_2K-JPG` | `painted-metal006` |
+| `metal` | `Metal`, `Door_Frame`, `wINDOW_bLINDS` | `metal-trim` |
+| `door` | `Metal_Door*` | `corrugated-steel` |
+| `pipes` | `Material002` | `metal006` |
+| `lamppost` | mesh `Placeholder_Lamppost_Metal_0` | `wood015` |
+| `floorStrip` | `Material.001`–`.003` | solid dark |
+| `darkTrim` | `Material.004`–`.006` | solid dark |
+
+### Texture folders in `public/assets/textures/`
+```
+plaster/            color, normal, rough
+bricks/             color, normal, rough, ao
+concrete020/        color, normal, rough
+concrete-walk/      color, normal, rough
+rubber/             color, normal, rough
+painted-metal006/   color, normal, rough, metalness, ao
+metal-trim/         color, normal, rough, metalness
+corrugated-steel/   color, normal, rough, metalness, ao
+wood015/            color, normal, rough
+metal006/           color, normal, rough, metalness
+metal025/           color, normal, rough, metalness
+rust/               color, normal, rough, metalness
+painted-metal014/   color, normal, rough, metalness, ao
+smear/              color, normal, rough
+asphalt025c/        color, normal, rough, ao
+concrete019/        color, normal, rough
+imperfections/      color, normal             ← window blinds
+metal-ac/           color, normal, rough, metalness
+painted-metal-box/  color, normal, rough, metalness, ao
+public/assets/metal012/  color, normal, roughness, metalness  ← note: "roughness.jpg" not "rough.jpg"
+```
+
+### TexturePicker workflow (DEV only)
+1. Enable "▶ Enable (click mesh)" in Leva panel
+2. Click a mesh → shows name, material, world bounds
+3. Select key from dropdown → preview applied immediately
+4. "Copy all" → paste JSON into `MESH_TEXTURE_OVERRIDES`
+
+---
+
+## PostFX
+
+```jsx
+<Bloom luminanceThreshold={0.65} luminanceSmoothing={0.35} intensity={0.8} mipmapBlur />
+<Vignette offset={0.2} darkness={0.85} />
+```
+
+Emissive materials need `toneMapped: false` AND output luminance > 0.65 to trigger bloom halos. If glow isn't visible, lower `luminanceThreshold` to 0.5.
+
+---
+
+## Failed Approaches — Do Not Retry
+
+1. **RectAreaLight over road** — creates physically exact rectangular floor patch, cannot be hidden by resizing. Use PointLights at Y≥7 for any colored fill that could reach the road.
+
+2. **Leva for final car material values** — Leva persists slider values in `localStorage`. Stale cached values override code defaults silently. Never use Leva controls for car body material. Hardcode all values.
+
+3. **Color-threshold emissive detection** — checking `b > 0.5`, `r > 0.45` etc. to detect accent strips is unreliable across GLBs. Use `classifyCarPart()` with exact material names instead.
+
+4. **`isMeshStandardMaterial` guard after first material swap** — after the first traversal replaces GLB materials with new `MeshPhysicalMaterial`, re-runs see the new type and skip meshes. Always snapshot originals to `userData.origMats` before any modification.
+
+5. **PointLights below Y=3** — anything at Y<3 with `distance>6` creates visible colored road blobs on the wet asphalt. Keep scene fills at Y≥7 unless `distance≤2`.
+
+6. **Normal map on car body at low roughness** — Metal012 normalMap scatters reflections and makes mirror-finish metal look matte. Remove normalMap for polished surfaces.
+
+---
+
+## Architecture Bug Fixes (historical)
+
+**HMR stale state**: `useState(MESH_TEXTURE_OVERRIDES)` captured the initial empty `{}` on first HMR load. Fix: spread static const inline each render, only `pickerOverrides` in state.
+
+**isEmissive false positives**: `emissiveIntensity` defaults to `1` in Three.js even when emissive color is black. Fix: `materialIsActuallyEmissive()` checks name keywords OR actual non-black emissive RGB.
+
+**useGLTF cloning**: `AlleyTextures` calling `useGLTF` independently got a cloned scene — mutations had no effect. Fix: `AlleyTextures` receives `scene` as prop from `Alley.jsx`.
+
+**Global texture repeat mutation**: `.repeat` set directly on `useTexture` cache mutated shared objects. Fix: `buildMaterial()` clones every texture before setting repeat/colorSpace.
+
+---
+
+## Pending Work
+
+- [ ] **Verify car materials** — body silver, `time_circuits` glows purple, `front_part_2` glows warm white, `buttons` glows red
+- [ ] **`Object_4` conflict** — check if AlleyTextures' `metal012` override fights Car.jsx on this mesh
+- [ ] **Enable ManholeSteam** — change `showSteam={false}` → `true` in Scene.jsx
+- [ ] **Road texture** — `Cube031_Road_0` still original (lane markings preserved); consider wet-asphalt look
+- [ ] **Puddles** — `Puddles.jsx` exists, not imported; position near car at Z=3–7
+- [ ] **Portfolio data** — contact section has `leon@example.com` / `github.com/leon` placeholders; resume link is `href="#"`
+- [ ] **Remove debug components** — confirm `TextureProof.jsx` and `AlleyColorTest.jsx` are not imported before ship
+- [ ] **More texture assignments** — use `uncatDebug` toggle in AlleyTextures Leva panel (hot-pink = uncategorized mesh) to find remaining unassigned meshes
 
 ---
 
@@ -266,10 +232,7 @@ Daemon was already running (PID 30920). Memory DB at `.swarm/memory.db`.
 cd "/Users/leon/Library/Mobile Documents/com~apple~CloudDocs/Development/portfolio-v2"
 npm run dev
 
-# Kill stale servers
+# Kill stale dev servers
 lsof -iTCP -sTCP:LISTEN -P | grep node
-
-# Check ruflo
-claude mcp list
-npx @claude-flow/cli@latest doctor
+kill <PID>
 ```

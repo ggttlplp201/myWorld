@@ -1,6 +1,6 @@
 import { Suspense, useEffect, useRef } from 'react'
 import { useGLTF, Clone, useAnimations } from '@react-three/drei'
-import { useControls } from 'leva'
+import { useControls, button } from 'leva'
 import * as THREE from 'three'
 import { usePBRTextureSet, applyRepeat } from '../utils/textures'
 
@@ -145,12 +145,32 @@ function AcUnit() {
 }
 useGLTF.preload(`${D}air_conditioner_unit_low_poly.glb`)
 
-// Brick wall plane sits behind graffiti decals.
-// Depth layering: alley.glb back wall (z≈-8) → brick plane (z=-7.85) → graffiti (z=-7.7) → electrical boxes (z=-7.68)
 function BackWallSection() {
-  const { showGraffiti } = useControls('BackWall', {
-    showGraffiti: { value: true, label: 'show graffiti (off = see wall behind)' },
+  const stateRef = useRef({})
+
+  const { x, y, z, width, height, thickness, rotationY, debugColor, showGraffiti } = useControls('BackWall', {
+    x:            { value: 1.7,   min: -10,        max: 10,         step: 0.01 },
+    y:            { value: 4.0,   min: 0,          max: 15,         step: 0.01 },
+    z:            { value: -7.88, min: -15,         max: 0,          step: 0.01 },
+    width:        { value: 2.6,   min: 0.1,        max: 20,         step: 0.01 },
+    height:       { value: 7.4,   min: 0.1,        max: 20,         step: 0.01 },
+    thickness:    { value: 0.12,  min: 0.01,       max: 2,          step: 0.01 },
+    rotationY:    { value: 0,     min: -Math.PI,   max: Math.PI,    step: 0.01 },
+    debugColor:   false,
+    showGraffiti: { value: true, label: 'show graffiti' },
+    'Copy BackWall constants': button(() => {
+      const { x, y, z, width, height, thickness, rotationY } = stateRef.current
+      const out = JSON.stringify(
+        { position: [x, y, z], size: [width, height, thickness], rotation: [0, rotationY, 0] },
+        null, 2
+      )
+      console.log('[BackWall]', out)
+      navigator.clipboard?.writeText(out).catch(() => {})
+    }),
   }, { collapsed: true })
+
+  // Keep ref current for button callback closure
+  Object.assign(stateRef.current, { x, y, z, width, height, thickness, rotationY })
 
   const { scene: graffitiScene } = useGLTF(`${D}decal_-_graffiti_textures.glb`)
   resetScale(graffitiScene)
@@ -161,32 +181,57 @@ function BackWallSection() {
   })
 
   const meshRef = useRef()
+  const matRef  = useRef(null)
 
+  // Build material with cloned (independent) textures
   useEffect(() => {
-    applyRepeat(tex, 4, 6)
+    const cloned = {}
+    for (const [k, v] of Object.entries(tex)) {
+      if (!v?.isTexture) continue
+      const t = v.clone()
+      t.wrapS = t.wrapT = THREE.RepeatWrapping
+      if (k === 'map') t.colorSpace = THREE.SRGBColorSpace
+      t.needsUpdate = true
+      cloned[k] = t
+    }
     const mat = new THREE.MeshStandardMaterial({
-      map:          tex.map,
-      normalMap:    tex.normalMap,
-      roughnessMap: tex.roughnessMap,
-      aoMap:        tex.aoMap,
-      color:        new THREE.Color('#9a8070'),
-      roughness:    0.9,
+      ...cloned,
+      color:           new THREE.Color('#9a8070'),
+      roughness:       0.9,
       envMapIntensity: 0.3,
       aoMapIntensity:  1.0,
-      side:         THREE.DoubleSide,
     })
     mat.normalScale.set(0.6, 0.6)
-    if (meshRef.current) meshRef.current.material = mat
-  }, [tex])
+    matRef.current = mat
+    if (meshRef.current && !debugColor) meshRef.current.material = mat
+  }, [tex]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Toggle debug color on/off
+  useEffect(() => {
+    if (!meshRef.current) return
+    meshRef.current.material = debugColor
+      ? new THREE.MeshBasicMaterial({ color: '#ff00ff' })
+      : (matRef.current ?? meshRef.current.material)
+  }, [debugColor])
+
+  // Update texture repeat when dimensions change
+  useEffect(() => {
+    const mat = matRef.current
+    if (!mat) return
+    const ru = Math.max(1, Math.round(width / 1.5))
+    const rv = Math.max(1, Math.round(height / 1.5))
+    for (const k of ['map', 'normalMap', 'roughnessMap', 'aoMap']) {
+      const t = mat[k]
+      if (t?.isTexture) { t.repeat.set(ru, rv); t.needsUpdate = true }
+    }
+  }, [width, height])
 
   return (
     <>
-      {/* Brick base — 14m wide to cover full back wall gap, always visible */}
-      <mesh ref={meshRef} position={[0, 5.35, -7.85]}>
-        <planeGeometry args={[14, 10.7]} />
+      <mesh ref={meshRef} position={[x, y, z]} rotation={[0, rotationY, 0]}>
+        <boxGeometry args={[width, height, thickness]} />
       </mesh>
 
-      {/* Graffiti decals on top — toggle off to inspect the wall */}
       {showGraffiti && (
         <>
           <group position={a.pos} rotation={a.rot} scale={a.scale}>

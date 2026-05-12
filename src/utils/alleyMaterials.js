@@ -3,14 +3,15 @@
 // Paste TexturePicker "Copy all" output here to persist assignments.
 // ---------------------------------------------------------------------------
 export const MESH_TEXTURE_OVERRIDES = {
-  "Building_Top_Building_Texture_2_0": "metal025",
-  "Shop_Top_Building_Texture_2_0":     "metal025",
   "Storeftront_Roof001_Railing_0":     "metal027",
   "Cube026_Railing_0":                 "metal027",
   "Placeholder_Lamppost_Metal_0":      "woodPole",
   "Cube014_Material004_0":             "rust",
   "Cube014_Metal_0":                   "paintedMetal014",
-  "Cube040_Concrete_0":                "smear",
+  "Object_4":                          "metal012",
+  "Floor_Asphalt_0":                   "asphalt025c",
+  "Cube040_Concrete_0":                "concrete019",
+  "Cube020_wINDOW_bLINDS_0":           "imperfections",
 }
 
 // ---------------------------------------------------------------------------
@@ -34,19 +35,24 @@ export const TEXTURE_DEFS = {
   rust:            { texSet: 'rust',              repeat: [2, 2], color: '#8a5a3a', roughness: 0.85, metalness: 0.30, envMap: 0.40 },
   paintedMetal014: { texSet: 'painted-metal014',  repeat: [2, 2], color: '#707070', roughness: 0.55, metalness: 0.70, envMap: 1.1,  aoIntensity: 0.8 },
   smear:           { texSet: 'smear',             repeat: [2, 2], color: '#9a9080', roughness: 0.90, metalness: 0,    envMap: 0.30 },
+  concrete019:     { texSet: 'concrete019',       repeat: [2, 2], color: '#8a8880', roughness: 0.88, metalness: 0,    envMap: 0.35 },
+  asphalt025c:     { texSet: 'asphalt025c',       repeat: [4, 4], color: '#888888', roughness: 0.92, metalness: 0,    envMap: 0.25, aoIntensity: 0.8 },
+  imperfections:   { texSet: 'imperfections',     repeat: [2, 3], color: '#7a7570', roughness: 0.72, metalness: 0.25, envMap: 0.70 },
 
   // ── Internal fallback categories (not shown in picker) ───────────────────
+  // textureMode: 'solid' — skip all texture maps (bad UVs on trim/corner geometry)
+  // textureMode: 'pbr'   — full PBR (default when omitted)
   walls:           { texSet: 'plaster',           repeat: [3, 4], color: '#b8aa9a', roughness: 0.85, metalness: 0,    envMap: 0.35 },
-  roofCap:         { texSet: 'bricks',            repeat: [4, 3], color: '#9a8070', roughness: 0.90, metalness: 0,    envMap: 0.30, aoIntensity: 1.0 },
-  curb:            { texSet: 'concrete-walk',     repeat: [3, 3], color: '#8a8880', roughness: 0.90, metalness: 0,    envMap: 0.30 },
+  roofCap:         { textureMode: 'solid', texSet: null, repeat: [1, 1], color: '#2b2b26', roughness: 0.72, metalness: 0.18, envMap: 0.45 },
+  curb:            { textureMode: 'solid', texSet: null, repeat: [1, 1], color: '#8a8377', roughness: 0.90, metalness: 0,    envMap: 0.30 },
   wires:           { texSet: 'rubber',            repeat: [1, 8], color: '#111111', roughness: 0.92, metalness: 0,    envMap: 0.20 },
   railing:         { texSet: 'painted-metal006',  repeat: [2, 3], color: '#666666', roughness: 0.48, metalness: 0.75, envMap: 1.1,  aoIntensity: 0.8 },
   metal:           { texSet: 'metal-trim',        repeat: [2, 3], color: '#555555', roughness: 0.55, metalness: 0.65, envMap: 1.0 },
   door:            { texSet: 'corrugated-steel',  repeat: [2, 3], color: '#707070', roughness: 0.60, metalness: 0.75, envMap: 1.1,  aoIntensity: 0.8 },
   pipes:           { texSet: 'metal006',          repeat: [2, 4], color: '#707878', roughness: 0.45, metalness: 0.80, envMap: 1.2 },
   lamppost:        { texSet: 'wood015',           repeat: [2, 6], color: '#8a7060', roughness: 0.80, metalness: 0,    envMap: 0.30 },
-  floorStrip:      { texSet: 'metal-trim',        repeat: [2, 3], color: '#505050', roughness: 0.50, metalness: 0.70, envMap: 1.0 },
-  darkTrim:        { texSet: 'metal-trim',        repeat: [2, 3], color: '#383838', roughness: 0.55, metalness: 0.60, envMap: 0.9 },
+  floorStrip:      { textureMode: 'solid', texSet: null, repeat: [1, 1], color: '#2d2f2c', roughness: 0.65, metalness: 0.25, envMap: 0.6 },
+  darkTrim:        { textureMode: 'solid', texSet: null, repeat: [1, 1], color: '#2d2f2c', roughness: 0.65, metalness: 0.25, envMap: 0.6 },
 }
 
 // Ordered options shown in TexturePicker dropdown

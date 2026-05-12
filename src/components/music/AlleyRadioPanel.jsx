@@ -23,12 +23,7 @@ export default function AlleyRadioPanel() {
     audio.addEventListener('pause', () => setIsPlaying(false))
     audio.addEventListener('ended', () => setIsPlaying(false))
 
-    // Attempt autoplay; on block, retry on first user interaction
-    audio.play().catch(() => {
-      const tryPlay = () => audio.play().catch(() => {})
-      document.addEventListener('click',   tryPlay, { once: true })
-      document.addEventListener('keydown', tryPlay, { once: true })
-    })
+    // No autoplay — user must press play manually
 
     return () => {
       audio.pause()
