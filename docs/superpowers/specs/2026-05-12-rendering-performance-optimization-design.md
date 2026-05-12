@@ -20,7 +20,7 @@ Current bottlenecks identified:
 - All car (`Car.jsx`) materials — hero asset, `MeshPhysicalMaterial` clearcoat stays
 - Cyan and magenta mood lights — define the cyberpunk atmosphere
 - Bloom effect — stays enabled, minor tune only
-- Back-wall component code — `Cables`, `ElectricalBoxes`, `BackWallSection` definitions and preloads kept in `SceneDressing.jsx`, just removed from the JSX return
+- All back-wall props — `Cables`, `ElectricalBoxes`, `BackWallSection` (graffiti) all stay rendered and visible
 
 ## Changes
 
@@ -72,7 +72,7 @@ Light count after: 6 (was 11)
 
 ### SceneDressing.jsx
 
-10. Remove `<Cables />`, `<ElectricalBoxes />`, and `<BackWallSection />` from the JSX return in `SceneDressing` — component definitions and `useGLTF.preload` calls are kept unchanged
+No changes — all props including back-wall components stay rendered.
 
 ## Expected Gains
 
@@ -83,7 +83,6 @@ Light count after: 6 (was 11)
 | Remove 5 lights (2 rect + 2 orange + city env) | ~25% shader complexity reduction |
 | Remove rain useFrame loop | eliminates 650-iteration CPU work per frame |
 | Remove mipmapBlur | eliminates ~4 fullscreen passes per frame |
-| Cull 3 back-wall prop renders | reduces draw calls by ~3 |
 
 Combined: estimated 60–70% reduction in GPU work per second.
 
@@ -92,4 +91,3 @@ Combined: estimated 60–70% reduction in GPU work per second.
 - `src/App.jsx`
 - `src/components/Scene.jsx`
 - `src/components/PostFX.jsx`
-- `src/components/SceneDressing.jsx`
